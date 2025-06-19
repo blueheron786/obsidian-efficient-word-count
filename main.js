@@ -15,7 +15,7 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
     this.cachePath = normalizePath(`${this.manifest.dir}/cache.json`);
     this.wordCounts = {};
-    this.dirty = false;
+    this.isDirty = false;
 
     await this.loadCacheFromDisk();
 
@@ -50,19 +50,23 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
   isExcluded(file) {
     const path = file.path.toLowerCase();
-    const name = file.name.toLowerCase();
+    const name = file.name.toLowerCase().replace(/\.md$/, ""); // remove .md
 
     const excludedFolders = this.settings.excludedFolders.map(f => f.toLowerCase());
     const excludedFiles = this.settings.excludedFiles.map(f => f.toLowerCase());
 
-    return excludedFolders.some(folder => path.startsWith(folder + "/")) ||
-          excludedFiles.includes(name);
+    const isInExcludedFolders = excludedFolders.some(folder => path.startsWith(folder + "/"));
+    const isInExcludedFiles = excludedFiles.includes(name);  // name now has no .md
+
+    return isInExcludedFolders || isInExcludedFiles;
   }
+
 
   async updateFile(file, mtime) {
     if (!(file instanceof TFile) || file.extension !== "md" || this.isExcluded(file))
     {
       console.log("Skipped non-TFile:", file.path);
+      return;
     };
 
     const content = await this.app.vault.read(file);
@@ -76,14 +80,14 @@ module.exports = class WordCountCachePlugin extends Plugin {
       mtime: mtime ?? (await this.app.vault.adapter.stat(file.path)).mtime
     };
 
-    this.dirty = true;
+    this.isDirty = true;
     this.refreshGlobalCache();
   }
 
   async removeFile(file) {
     if (this.wordCounts[file.path]) {
       delete this.wordCounts[file.path];
-      this.dirty = true;
+      this.isDirty = true;
       this.refreshGlobalCache();
     }
   }
@@ -93,8 +97,30 @@ module.exports = class WordCountCachePlugin extends Plugin {
     let updated = 0;
     const files = this.app.vault.getMarkdownFiles();
 
+    // Create a set of current file paths for quick lookup
+    const currentFilePaths = new Set(files.map(f => f.path));
+
+    // Remove counts for files no longer existing or now excluded
+    for (const cachedPath of Object.keys(this.wordCounts)) {
+      if (!currentFilePaths.has(cachedPath)) {
+        // File deleted
+        delete this.wordCounts[cachedPath];
+        updated++;
+      } else {
+        // Check if excluded now
+        const file = this.app.vault.getAbstractFileByPath(cachedPath);
+        if (file && this.isExcluded(file)) {
+          delete this.wordCounts[cachedPath];
+          updated++;
+        }
+      }
+    }
+
+    // Update counts for included files
     for (const file of files) {
-      if (this.isExcluded(file)) continue;
+      if (this.isExcluded(file)) {
+        continue;
+      }
 
       const stat = await this.app.vault.adapter.stat(file.path);
       const mtime = stat.mtime;
@@ -105,12 +131,15 @@ module.exports = class WordCountCachePlugin extends Plugin {
       }
     }
 
+    this.isDirty = true;
+
     const end = performance.now();
     const totalCount = Object.values(this.wordCounts).reduce((a, b) => a + (b.wordcount || 0), 0);
-    console.log(`Word count cache built: ${Object.keys(this.wordCounts).length} notes totalling ${totalCount} words in (${updated} updated) in ${(end - start).toFixed(2)} ms`);
+
 
     this.refreshGlobalCache();
   }
+
 
   async loadCacheFromDisk() {
     try {
@@ -127,10 +156,10 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
   async saveCacheToDisk() {
     try {
-      if (!this.dirty) return;
+      if (!this.isDirty) return;
       const data = JSON.stringify(this.wordCounts, null, 2);
       await this.app.vault.adapter.write(this.cachePath, data);
-      this.dirty = false;
+      this.isDirty = false;
       console.log("Word count cache saved to disk.");
     } catch (e) {
       console.error("Failed to save word count cache to disk:", e);
@@ -138,7 +167,7 @@ module.exports = class WordCountCachePlugin extends Plugin {
   }
 
   maybeSaveCache() {
-    if (this.dirty) {
+    if (this.isDirty) {
       this.saveCacheToDisk();
     }
   }
