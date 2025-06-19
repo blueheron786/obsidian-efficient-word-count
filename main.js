@@ -10,7 +10,7 @@ const DEFAULT_SETTINGS = {
 
 module.exports = class WordCountCachePlugin extends Plugin {
   async onload() {
-    console.log("Word Count Cache plugin loaded");
+    console.log("Efficient Word Count plugin loaded");
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
     this.cachePath = normalizePath(`${this.manifest.dir}/cache.json`);
@@ -42,7 +42,7 @@ module.exports = class WordCountCachePlugin extends Plugin {
   }
 
   onunload() {
-    console.log("Word Count Cache plugin unloaded");
+    console.log("Efficient Word Count plugin unloaded");
     delete window.wordCountCache;
     clearInterval(this.saveInterval);
     this.saveCacheToDisk(); // Final write
@@ -65,15 +65,12 @@ module.exports = class WordCountCachePlugin extends Plugin {
   async updateFile(file, mtime) {
     if (!(file instanceof TFile) || file.extension !== "md" || this.isExcluded(file))
     {
-      console.log("Skipped non-TFile:", file.path);
       return;
     };
 
     const content = await this.app.vault.read(file);
     const body = content.replace(/^---\n[\s\S]*?\n---/, "");
     const count = body.trim().split(/\s+/).filter(w => w.length > 0).length;
-
-    console.log("Updating word count:", file.path, count);
 
     this.wordCounts[file.path] = {
       wordcount: count,
@@ -148,7 +145,6 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
       const data = await this.app.vault.adapter.read(this.cachePath);
       this.wordCounts = JSON.parse(data);
-      console.log(`Loaded word count cache from disk (${Object.keys(this.wordCounts).length} entries)`);
     } catch (e) {
       console.error("Failed to load word count cache from disk:", e);
     }
@@ -160,7 +156,6 @@ module.exports = class WordCountCachePlugin extends Plugin {
       const data = JSON.stringify(this.wordCounts, null, 2);
       await this.app.vault.adapter.write(this.cachePath, data);
       this.isDirty = false;
-      console.log("Word count cache saved to disk.");
     } catch (e) {
       console.error("Failed to save word count cache to disk:", e);
     }
@@ -173,7 +168,6 @@ module.exports = class WordCountCachePlugin extends Plugin {
   }
 
   async handleModify(file) {
-    console.log("File modified:", file.path);
     await this.updateFile(file);
   }
 
