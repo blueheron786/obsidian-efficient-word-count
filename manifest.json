@@ -2,9 +2,9 @@
   "id": "efficient-word-count",
   "name": "Efficient Word Count",
   "version": "1.0.0",
-  "minAppVersion": "1.0.0",
+  "minAppVersion": "1.8.0",
   "description": "Efficiently calculates and caches word counts for notes, with folder exclusion. Uses cache to avoid recalculating word counts for unchanged notes.",
   "author": "Blue Heron",
   "authorUrl": "https://github.com/blueheron786",
-  "main": "main.js"
+  "isDesktopOnly": false
 }
