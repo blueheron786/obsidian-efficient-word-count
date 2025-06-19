@@ -26,20 +26,23 @@ Available via the Community Plugins browser. If you want to install it manually:
 You can access the word counts in your DataviewJS scripts or custom scripts via the global object:
 
 ```js
-// Get word count for a specific file path
-const count = window.wordCountCache.get("Folder/Note.md");
 
 // Get total word count in vault
 const total = window.wordCountCache.total();
+
+// Get word count for a specific file path
+const count = window.wordCountCache.get("Folder/Note.md");
 ```
 
+## Exclusions
+
+You can configure excluded files or folders via the plugin settings. For files, the `.md` extension is optional.
+
 ## Development
-The plugin is written in TypeScript.
+The plugin is written in JavaScript. If you prefer TypeScript, you're welcome to convert it over and open a PR.
 
-Compile with npm run build (requires Node.js).
-
-Reload plugin in Obsidian after rebuilding.
+Reload plugin in Obsidian after rebuilding via `CTRL + P` => `Reload ...`.
 
 ## License
 
-MIT License. Feel free to contribute!
+[MIT License](LICENSE). Feel free to contribute!
