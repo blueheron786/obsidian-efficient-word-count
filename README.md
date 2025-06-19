@@ -32,3 +32,14 @@ const count = window.wordCountCache.get("Folder/Note.md");
 // Get total word count in vault
 const total = window.wordCountCache.total();
 ```
+
+## Development
+The plugin is written in TypeScript.
+
+Compile with npm run build (requires Node.js).
+
+Reload plugin in Obsidian after rebuilding.
+
+## License
+
+MIT License. Feel free to contribute!

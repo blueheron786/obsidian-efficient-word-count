@@ -1,0 +1,16 @@
+{
+  "name": "efficient-word-count",
+  "version": "0.1.0",
+  "description": "Efficient word count cache plugin for Obsidian",
+  "author": "Blue Heron",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "obsidian": "latest"
+  }
+}
