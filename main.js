@@ -207,8 +207,6 @@ class WordCountCacheSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("Efficient Word Count settings").setHeading();
-
     new Setting(containerEl)
       .setName("Excluded folders")
       .setDesc("Folders to exclude from word count")
