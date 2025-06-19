@@ -213,10 +213,10 @@ class WordCountCacheSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Word Count Cache Settings" });
+    new Setting(containerEl.setName("Efficient Word Count settings").setHeading();
 
     new Setting(containerEl)
-      .setName("Excluded Folders")
+      .setName("Excluded folders")
       .setDesc("Folders to exclude from word count")
       .addTextArea(text => {
         text.setValue(this.plugin.settings.excludedFolders.join("\n"));
@@ -228,7 +228,7 @@ class WordCountCacheSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Excluded Files")
+      .setName("Excluded files")
       .setDesc("Files to exclude from word count")
       .addTextArea(text => {
         text.setValue(this.plugin.settings.excludedFiles.join("\n"));
