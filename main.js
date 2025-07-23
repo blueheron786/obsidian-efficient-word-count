@@ -94,7 +94,6 @@ module.exports = class WordCountCachePlugin extends Plugin {
   }
 
   async buildCacheAndExposeApi() {
-    const start = performance.now();
     let updated = 0;
     const files = this.app.vault.getMarkdownFiles();
 
@@ -133,10 +132,6 @@ module.exports = class WordCountCachePlugin extends Plugin {
     }
 
     this.isDirty = true;
-
-    const end = performance.now();
-    const totalCount = Object.values(this.wordCounts).reduce((a, b) => a + (b.wordcount || 0), 0);
-
 
     this.refreshGlobalCache();
   }
