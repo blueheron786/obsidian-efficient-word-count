@@ -18,26 +18,22 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
     await this.loadCacheFromDisk();
 
+    // Initialize after the workspace is ready
     this.app.workspace.onLayoutReady(() => {
-      setTimeout(async () => {
-        const files = this.app.vault.getMarkdownFiles();
-        if (!files.length) {
-          console.warn("No markdown files found. Retrying in 500ms...");
-          setTimeout(() => this.buildCacheAndExposeApi(), 500);
-        } else {
-          this.buildCacheAndExposeApi();
-        }
-      }, 100);
+      this.buildCacheAndExposeApi();
     });
 
     this.addSettingTab(new WordCountCacheSettingTab(this.app, this));
 
+    // Register file system event handlers
     this.registerEvent(this.app.vault.on("modify", this.handleModify.bind(this)));
     this.registerEvent(this.app.vault.on("delete", this.handleDelete.bind(this)));
     this.registerEvent(this.app.vault.on("rename", this.handleRename.bind(this)));
+    this.registerEvent(this.app.vault.on("create", this.handleCreate.bind(this)));
 
     // Save cache periodically
     this.saveInterval = window.setInterval(() => this.maybeSaveCache(), 5000);
+    this.registerInterval(this.saveInterval);
   }
 
   onunload() {
@@ -48,13 +44,13 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
   isExcluded(file) {
     const path = file.path.toLowerCase();
-    const name = file.name.toLowerCase().replace(/\.md$/, ""); // remove .md
+    const name = file.basename.toLowerCase();
 
     const excludedFolders = this.settings.excludedFolders.map(f => f.toLowerCase());
     const excludedFiles = this.settings.excludedFiles.map(f => f.toLowerCase());
 
     const isInExcludedFolders = excludedFolders.some(folder => path.startsWith(folder + "/"));
-    const isInExcludedFiles = excludedFiles.includes(name);  // name now has no .md
+    const isInExcludedFiles = excludedFiles.includes(name);
 
     return isInExcludedFolders || isInExcludedFiles;
   }
@@ -66,17 +62,27 @@ module.exports = class WordCountCachePlugin extends Plugin {
       return;
     };
 
-    const content = await this.app.vault.read(file);
-    const body = content.replace(/^---\n[\s\S]*?\n---/, "");
-    const count = body.trim().split(/\s+/).filter(w => w.length > 0).length;
+    try {
+      const content = await this.app.vault.cachedRead(file);
+      
+      // Get frontmatter info
+      const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+      const body = frontmatter?.position 
+        ? content.slice(frontmatter.position.end.offset).trim() 
+        : content.trim();
+      
+      const count = body.split(/\s+/).filter(w => w.length > 0).length;
 
-    this.wordCounts[file.path] = {
-      wordcount: count,
-      mtime: mtime ?? (await this.app.vault.adapter.stat(file.path)).mtime
-    };
+      this.wordCounts[file.path] = {
+        wordcount: count,
+        mtime: mtime ?? (await this.app.vault.adapter.stat(file.path)).mtime
+      };
 
-    this.isDirty = true;
-    this.refreshGlobalCache();
+      this.isDirty = true;
+      this.refreshGlobalCache();
+    } catch (e) {
+      console.error(`Failed to update word count for ${file.path}:`, e);
+    }
   }
 
   async removeFile(file) {
@@ -175,6 +181,10 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
   async handleRename(file, oldPath) {
     await this.removeFile({ path: oldPath });
+    await this.updateFile(file);
+  }
+
+  async handleCreate(file) {
     await this.updateFile(file);
   }
 
