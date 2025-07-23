@@ -10,7 +10,6 @@ const DEFAULT_SETTINGS = {
 
 module.exports = class WordCountCachePlugin extends Plugin {
   async onload() {
-    console.log("Efficient Word Count plugin loaded");
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
     this.cachePath = normalizePath(`${this.manifest.dir}/cache.json`);
@@ -42,7 +41,6 @@ module.exports = class WordCountCachePlugin extends Plugin {
   }
 
   onunload() {
-    console.log("Efficient Word Count plugin unloaded");
     delete window.wordCountCache;
     clearInterval(this.saveInterval);
     this.saveCacheToDisk(); // Final write
