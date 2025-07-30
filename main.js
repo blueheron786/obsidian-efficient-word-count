@@ -1,4 +1,5 @@
-const { Plugin, normalizePath, TFile } = require("obsidian");
+
+const { Plugin, normalizePath, TFile, getFrontMatterInfo } = require("obsidian");
 
 // For UI cmoponents
 const { App, PluginSettingTab, Setting } = require("obsidian");
@@ -38,7 +39,6 @@ module.exports = class WordCountCachePlugin extends Plugin {
 
   onunload() {
     delete window.wordCountCache;
-    clearInterval(this.saveInterval);
     this.saveCacheToDisk(); // Final write
   }
 
@@ -65,12 +65,12 @@ module.exports = class WordCountCachePlugin extends Plugin {
     try {
       const content = await this.app.vault.cachedRead(file);
       
-      // Get frontmatter info
-      const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
-      const body = frontmatter?.position 
-        ? content.slice(frontmatter.position.end.offset).trim() 
+
+      // Use official getFrontMatterInfo to skip frontmatter
+      const { exists, contentStart } = getFrontMatterInfo(content);
+      const body = exists
+        ? content.slice(contentStart).trim()
         : content.trim();
-      
       const count = body.split(/\s+/).filter(w => w.length > 0).length;
 
       this.wordCounts[file.path] = {
